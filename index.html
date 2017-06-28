@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<title>이미지 좌표 생성기</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+<!--
+요구사항
+
+1. PC선택시 단위는 px로 / M선택시 단위는 %로 생성
+2. 영역 지정 완료후, 지정된 영역 표시되도록.
+3. 좌표생성 결과는 top,right,bottom,left,width,height 순으로 generate
+4. 각 영역 순서대로 좌표생성.
+5. 생성된 좌표 내용이 곧바로 ctrl+c 되도록.
+
++) 추가
+6. 영역 선택시 시작점, 끝점 방향 자유자재로.
+7. 이미지 파일만 드래그 가능하도록.
+8. 시작점 클릭후 ESC키를 누르면, 시작점 재설정 가능하도록.
+
+-->
+<div class="wrap">
+  <div class="device_area">
+    <h1 class="tit">#이미지좌표생성</h1>
+    <!-- device 선택 -->
+    <span class="device">
+      <input type="radio" id="pc" name="device" value="p" class="blind" checked>
+      <label for="pc">PC</label>
+    </span>
+    <span class="device">
+      <input type="radio" id="m" name="device" value="m" class="blind">
+      <label for="m">모바일</label>
+      <span class="decimal">생성될 좌표값의 소수점자리값을 선택하세요.
+        <select class="sel" title="좌표 소수점자리값">
+          <option>1</option>
+          <option>2</option>
+          <option>3</option>
+          <option>4</option>
+          <option>5</option>
+          <option>6</option>
+          <option>7</option>
+          <option>8</option>
+          <option>9</option>
+          <option>10</option>
+          <option>11</option>
+          <option>12</option>
+          <option>13</option>
+          <option selected>14</option>
+        </select>
+      </span>
+    </span>
+    <!-- 새로고침 -->
+    <button type="button" onclick="location.reload();" class="btn">리셋</button>
+  </div>
+  <!-- 좌표값 영역 -->
+  <div class="result_area"><ul class="result_lst"></ul></div>
+  <!-- 이미지 영역 -->
+  <div class="img_area"><img src="" alt="" class="img"></div>
+</div>
+<!-- Insert this line above script imports  -->
+<script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+
+<!-- normal script imports etc  -->
+<script src="http://code.jquery.com/jquery-1.12.4.js"></script>
+<script type="text/javascript">
+$(function(){
+  var device, decimal = $('.decimal');
+
+  $('input:radio[name=device]').change(function(){ //디바이스(PC, M) 선택값 저장
+    device = $(this).val();
+  });
+
+  $('.img_area').on({
+    'dragover dragenter' : function(){ //drop대상 위에 있을 떄
+      $(this).addClass('is_active');
+      return false;
+    },
+    'dragleave' : function(e){ //drop대상에서 벗어났을 때
+      $(this).removeClass('is_active');
+    },
+    'drop' : function(e){ //drop했을 때
+      var file = e.originalEvent.dataTransfer.files[0], //drag & drop으로 반환된 객체(dataTransfer)를 사용하여 파일을 가져옴.
+        reader = new FileReader(); //파일을 읽어들이기 위한 객체 생성
+      
+      reader.readAsDataURL(file); //가져온 파일의 URL을 읽음.
+      reader.onload = function(){ //파일 로드 한 후
+        var imgArea = $('.img_area'),
+          img = imgArea.find('.img'),
+          imgWidth, imgHeight, imgOffset;
+
+        if(img.attr('src')) return false;
+
+        if(!file.type.match('image.*')){ //drag한 파일이 이미지 형식의 파일인지 검사
+          alert('이미지 형식의 파일만 열어주세요.');
+        }else{ //이미지 형식의 파일이 맞을 경우
+          img.attr('src', reader.result); //불러온 파일의 주소로, 이미지 src 교체
+          imgArea.css({
+            'min-width' : 'initial',
+            'min-height' : 'initial',
+            'background' : 'initial'
+          });
+
+          img.on('load', function(){
+            imgWidth = img.width(),
+            imgHeight = img.height();
+            imgOffset = img.offset();
+
+            /********** 마우스이동 **********/
+            var currentCoord, pageX, pageY;
+
+            img.on('mousemove', function(e){ //마우스 이동하는 동안, crosshair 및 현재좌표 노출
+              /*
+              e.pageX : 현재 마우스 위치의 x좌표
+              e.pageY : 현재 마우스 위치의 y좌표
+              offset() : 해당 요소의 좌표
+              */
+              pageX = e.pageX - imgOffset.left;
+              pageY = e.pageY - imgOffset.top;
+
+              if($('.current_coord,.line').length === 0){ //crosshair, 현재좌표 초기화 형태 생성
+                imgArea.append(
+                  '<span class="current_coord"></span>' +
+                  '<span class="line line_y"></span>' +
+                  '<span class="line line_x"></span>'
+                );
+              }
+              currentCoord = imgArea.find('.current_coord'); //현재좌표 출력
+              if(device === 'm'){
+                currentCoord.html('X: '+parseInt(pageX / imgWidth * 100)+ '%, Y: ' +parseInt(pageY / imgHeight * 100)+ '%');
+              }else{
+                currentCoord.html('X: ' +pageX+ 'px, Y: ' +pageY+ 'px');
+              }
+
+              imgArea.find('.line_x').css('left', pageX);
+              imgArea.find('.line_y').css('top', pageY);
+            });
+
+            img.hover( //이미지 위에 마우스가 올라가있을 경우에만 crosshair, 현재좌표 출력
+              function(){
+                $('.line,.current_coord').show();
+              }, function(){
+                $('.line,.current_coord').hide();
+            });
+
+            /********** 클릭 **********/
+            var flag = true, //클릭했을때 해당 포인터의 시작점, 끝점을 구분하기위한 flag
+              tmpStartX, tmpStartY, tmpEndX, tmpEndY,
+              selX, selY, //선택된 영역 보여주기위해 필요한 변수
+              selCnt = 0, //선택된 영역이 몇번째인지 카운트하기 위한 변수
+              lnkY, lnkX, lnkWidth, lnkHeight, //최종 좌표결과를 저장하는 변수
+              point, selectArea, decimalNum;
+
+            img.on('click',function(e){
+              pageX = e.pageX - imgOffset.left;
+              pageY = e.pageY - imgOffset.top;
+
+              $('.device').addClass('is_disabled'); //디바이스 선택 비활성화
+
+              point = $('<span>').addClass('point');
+              point.css({
+                'top' : pageY,
+                'left' : pageX
+              });
+              point.prependTo(imgArea); //클릭점 표시
+
+
+              if(flag){ //첫번째 클릭일 경우(시작점)
+                selX  = pageX; //첫번째 클릭시 x좌표 저장
+                selY  = pageY; //첫번째 클릭시 y좌표 저장
+                tmpStartX = pageX;
+                tmpStartY = pageY;
+                $('.point:first-child').addClass('start');
+
+                $(document).keyup(function(e){ //ESC키 눌렀을 때, 시작점 초기화
+                  if(e.keyCode === 27){
+                    imgArea.find('.start:first-child').remove();
+                    flag = true;
+                    return;
+                  }
+                });
+
+                flag = false;
+                return;
+              } //두번째 클릭일 경우(끝점)
+              tmpEndX = pageX;
+              tmpEndY = pageY;
+
+              $('.point:first-child').addClass('end');
+
+              lnkWidth = Math.abs(tmpEndX - tmpStartX); //절대값
+              lnkHeight = Math.abs(tmpEndY - tmpStartY);
+
+              if(selX > tmpEndX){ //시작점x가 끝점x보다 큰 경우(1)
+                selX = tmpEndX;
+                lnkY = tmpStartY;
+                lnkX = tmpEndX;
+                if(selY > tmpEndY){ //시작점y가 끝점y보다 큰 경우(2)
+                  selY = tmpEndY;
+                  lnkY = tmpEndY;
+                }
+              }else{ //시작점x가 끝점x보다 작은 경우(3)
+                lnkY = tmpStartY;
+                lnkX = tmpStartX;
+                if(selY > tmpEndY){ //시작점y가 끝점y보다 큰 경우(4)
+                  selY = tmpEndY;
+                  lnkY = tmpEndY;
+                }
+              }
+
+              //선택된 영역 표시
+              selectArea = $('<div>').addClass('select_area');
+              selectArea.css({
+                'top' : selY,
+                'left' : selX,
+                'width' : lnkWidth,
+                'height' : lnkHeight,
+                'line-height' : lnkHeight + 'px'
+              }).html(++selCnt);
+              selectArea.prependTo(imgArea);
+
+              decimalNum = decimal.find('.sel option:selected').val(); //Mobile 좌표값 소수점자리값 저장
+
+              //좌표결과값 생성
+              if(device === 'm'){ //Mobile
+                lnkY  = (lnkY / imgHeight * 100).toFixed(decimalNum) + "%"; //선택된 소수점자리값만큼 출력
+                lnkX  = (lnkX / imgWidth * 100).toFixed(decimalNum) + "%";
+                lnkWidth = (lnkWidth / imgWidth * 100).toFixed(decimalNum) + "%";
+                lnkHeight = (lnkHeight / imgHeight * 100).toFixed(decimalNum) + "%";
+              }else{ //PC
+                lnkY  += "px";
+                lnkX  += "px";
+                lnkWidth += "px";
+                lnkHeight += "px";
+              }
+
+              //좌표결과 목록 생성
+              $('.result_lst').append($(
+                '<li>' +
+                  '<span class="num">' + selCnt +'. </span>' +
+                  '<input type="text" value="' +
+                    'position:absolute;' +
+                    'top:' + lnkY + ';' +
+                    'left:'+ lnkX + ';' +
+                    'width:' + lnkWidth + ';' +
+                    'height:' + lnkHeight + ';' +
+                  '">' +
+                  '<button type="button" class="btn_copy">COPY</button>' +
+                '</li>'
+              ));
+
+              flag = true;
+            });
+          });
+
+          $('.result_area').on('click','.btn_copy',function(){ //동적으로 생성된 COPY버튼에 이벤트 적용
+            $(this).prev().select(); //input 내 value 선택하여
+            document.execCommand('copy'); //클립보드에 복사
+            alert('클립보드에 복사(Ctrl+C)되었습니다.');
+          });
+        }
+      };
+      e.preventDefault();
+    }
+  });
+});
+</script>
+
+<!-- Insert this line after script imports -->
+<script>if (window.module) module = window.module;</script>
+</body>
+</html>
