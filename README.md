@@ -16,7 +16,7 @@
 
  
     +) 요한선임님께서 이전에 공유해주셨던 방법도 있습니다. (이미지맵 코드값 필요)
-    [https://home.worksmobile.com/main/article/206796030725](https://home.worksmobile.com/main/article/206796030725)
+    https://home.worksmobile.com/main/article/206796030725
  
 
 
@@ -55,7 +55,7 @@ width는 (588/750) * 100이 되고... height는 (112/1240) * 100..<br>
 ## How to use
 
     이미지 좌표 생성툴 ▼
-    [https://goo.gl/WpTHGK](https://goo.gl/WpTHGK)
+    https://goo.gl/WpTHGK
  
  
 1) 위의 URL을 브라우저로 연 후, (크롬, IE10+, Firefox) 
